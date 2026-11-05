@@ -1,0 +1,65 @@
+{
+  "version": "2026-11-05.1",
+  "notes": [
+    "Categories are evaluated in the order listed. On a keyword-score tie, the earlier (security) category wins, because misrouting a security issue costs more than misrouting a billing question.",
+    "Destinations must be in the allowlist defined in src/triage/models.py. The AI classifier never chooses a destination.",
+    "Escalation keywords set a priority floor that applies to BOTH classifiers, so an AI result cannot downgrade e.g. a ransomware report.",
+    "'urgent' is deliberately NOT an escalation keyword: requesters often mark everything urgent."
+  ],
+  "review": {
+    "confidence_threshold": 0.6,
+    "always_review_priorities": ["P1"],
+    "always_review_categories": ["data_exposure"]
+  },
+  "categories": {
+    "malware_suspected": {
+      "destination": "security_incident_response",
+      "base_priority": "P2",
+      "keywords": ["malware", "virus", "ransomware", "ransom note", "trojan", "keylogger", "files encrypted", "encrypted my files", ".locked", "pop-ups", "popups", "antivirus alert", "strange process"]
+    },
+    "data_exposure": {
+      "destination": "security_incident_response",
+      "base_priority": "P2",
+      "keywords": ["data breach", "breach", "leaked", "exposed", "wrong recipient", "to the wrong person", "sent to the wrong", "publicly accessible", "public link", "exfiltration", "customer data", "lost laptop", "stolen laptop"]
+    },
+    "phishing_report": {
+      "destination": "security_incident_response",
+      "base_priority": "P2",
+      "keywords": ["phishing", "phish", "suspicious email", "suspicious link", "spoofed", "spoofing", "fake login", "pretending to be", "impersonating", "clicked a link", "clicked the link", "gift cards"]
+    },
+    "account_access": {
+      "destination": "identity_access_team",
+      "base_priority": "P3",
+      "keywords": ["locked out", "lockout", "account locked", "can't log in", "cannot log in", "unable to log in", "password reset", "reset my password", "forgot my password", "mfa", "2fa", "authenticator"]
+    },
+    "access_request": {
+      "destination": "identity_access_team",
+      "base_priority": "P4",
+      "keywords": ["request access", "need access", "access to the", "grant access", "permission to", "add me to", "new account for", "onboarding", "shared drive"]
+    },
+    "technical_support": {
+      "destination": "it_helpdesk",
+      "base_priority": "P3",
+      "keywords": ["vpn", "printer", "laptop", "wifi", "wi-fi", "slow", "crash", "crashes", "crashing", "freeze", "freezes", "error message", "not working", "won't start", "install", "software", "outlook", "monitor"]
+    },
+    "billing": {
+      "destination": "billing_team",
+      "base_priority": "P4",
+      "keywords": ["invoice", "billing", "charged", "double charged", "overcharged", "refund", "payment", "subscription", "credit card", "receipt"]
+    },
+    "general_inquiry": {
+      "destination": "general_support_queue",
+      "base_priority": "P4",
+      "keywords": ["question", "how do i", "hours", "information", "policy", "where can i", "wondering"]
+    },
+    "unknown": {
+      "destination": "human_triage",
+      "base_priority": "P3",
+      "keywords": []
+    }
+  },
+  "escalation": {
+    "to_p1": ["ransomware", "ransom note", "files encrypted", "encrypted my files", "data breach", "exfiltration", "active attack", "all users", "entire company", "production down", "wire transfer"],
+    "raise_one_level": ["clicked the link", "clicked a link", "entered my password", "entered my credentials", "multiple users", "other people on my team", "executive", "ceo", "admin account", "payroll"]
+  }
+}
