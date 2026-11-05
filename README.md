@@ -131,3 +131,7 @@ tests/         pytest suite
 docs/          architecture, security, results, demo script
 integrations/  optional n8n guide
 ```
+
+## License
+
+[MIT](LICENSE) © 2026 Christopher Grubb

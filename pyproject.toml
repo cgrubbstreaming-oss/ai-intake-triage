@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,6 +7,7 @@ name = "ai-intake-triage"
 version = "0.1.0"
 description = "AI-assisted intake and cybersecurity triage automation with a rule-based fallback, human-review triggers, and a tamper-evident audit log."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110",
