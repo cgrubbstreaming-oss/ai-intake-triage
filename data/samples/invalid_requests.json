@@ -1,0 +1,23 @@
+[
+  {
+    "request_id": "INV-001",
+    "subject": "Extra personal field",
+    "description": "This request includes an email field, which the schema does not allow.",
+    "email": "someone@example.com"
+  },
+  {
+    "request_id": "INV-002",
+    "subject": "Too short",
+    "description": "help"
+  },
+  {
+    "request_id": "INV-003",
+    "description": "This request has no subject field at all."
+  },
+  {
+    "request_id": "bad id with spaces!",
+    "subject": "Bad request id",
+    "description": "The request_id contains characters that are not allowed."
+  },
+  "this entry is a string, not an object"
+]
