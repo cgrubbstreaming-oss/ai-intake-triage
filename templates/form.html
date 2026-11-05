@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intake Triage Demo</title>
+  <style>
+    :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#5b6475; --line:#d9dde4; --accent:#2457c5; --warn:#a14d00; --warn-bg:#fff3e6; --ok:#1d7a46; --ok-bg:#e8f6ee; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#14171c; --card:#1d2128; --text:#e6e9ef; --muted:#9aa3b2; --line:#323844; --accent:#7aa2ff; --warn:#ffb26b; --warn-bg:#3a2a1a; --ok:#6fd49b; --ok-bg:#183326; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    p.note { color: var(--muted); margin: 0 0 20px; }
+    form, section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+    label { display:block; font-weight:600; margin: 12px 0 4px; }
+    input, textarea, select { width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px; background:transparent; color:inherit; font:inherit; }
+    textarea { min-height: 130px; resize: vertical; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    button { margin-top: 16px; padding: 10px 18px; border:0; border-radius:6px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+    .banner { padding: 10px 12px; border-radius: 6px; font-weight: 600; margin-bottom: 12px; }
+    .banner.review { background: var(--warn-bg); color: var(--warn); }
+    .banner.auto { background: var(--ok-bg); color: var(--ok); }
+    dl { display:grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0 0 12px; }
+    dt { color: var(--muted); }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    pre { background: var(--bg); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Intake &amp; Cybersecurity Triage</h1>
+  <p class="note">Demo with simulated data only. Do not enter real names, contact details, passwords or customer data.</p>
+
+  <form id="intake">
+    <label for="subject">Subject</label>
+    <input id="subject" name="subject" required minlength="3" maxlength="200">
+
+    <label for="description">Description</label>
+    <textarea id="description" name="description" required minlength="10" maxlength="5000"></textarea>
+
+    <div class="row">
+      <div>
+        <label for="requester_role">Requester role</label>
+        <select id="requester_role" name="requester_role">
+          <option value="unknown">Unknown</option>
+          <option value="employee">Employee</option>
+          <option value="customer">Customer</option>
+          <option value="contractor">Contractor</option>
+        </select>
+      </div>
+      <div>
+        <label for="affected_systems">Affected systems (comma separated)</label>
+        <input id="affected_systems" name="affected_systems" maxlength="500">
+      </div>
+    </div>
+
+    <label for="token">Webhook token (only if the server requires one)</label>
+    <input id="token" name="token" type="password" autocomplete="off">
+
+    <button type="submit">Submit for triage</button>
+  </form>
+
+  <section id="result" hidden>
+    <div id="banner" class="banner"></div>
+    <dl id="summary"></dl>
+    <details>
+      <summary>Full JSON response</summary>
+      <pre id="raw"></pre>
+    </details>
+  </section>
+</main>
+
+<script>
+  // All server data is rendered with textContent, never innerHTML, so
+  // submitted text can't inject markup into this page.
+  const form = document.getElementById("intake");
+  const resultBox = document.getElementById("result");
+  const banner = document.getElementById("banner");
+  const summary = document.getElementById("summary");
+  const raw = document.getElementById("raw");
+
+  function addRow(label, value) {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    summary.append(dt, dd);
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const systems = form.affected_systems.value.split(",").map(s => s.trim()).filter(Boolean);
+    const payload = {
+      channel: "web_form",
+      subject: form.subject.value,
+      description: form.description.value,
+      requester_role: form.requester_role.value,
+      affected_systems: systems,
+    };
+    const headers = { "Content-Type": "application/json" };
+    if (form.token.value) headers["X-Webhook-Token"] = form.token.value;
+
+    summary.replaceChildren();
+    resultBox.hidden = false;
+    try {
+      const response = await fetch("/intake", { method: "POST", headers, body: JSON.stringify(payload) });
+      const data = await response.json();
+      raw.textContent = JSON.stringify(data, null, 2);
+      if (!response.ok) {
+        banner.className = "banner review";
+        banner.textContent = `Error ${response.status}: ${data.message || "request failed"}`;
+        (data.details || []).forEach(d => addRow(d.field, d.message));
+        return;
+      }
+      banner.className = data.needs_human_review ? "banner review" : "banner auto";
+      banner.textContent = data.needs_human_review
+        ? "Flagged for human review: " + data.review_reasons.join(", ")
+        : "Auto-routed (no review triggers)";
+      addRow("Request ID", data.request_id);
+      addRow("Category", data.category);
+      addRow("Priority", data.priority);
+      addRow("Destination", data.destination);
+      addRow("Confidence", String(data.confidence));
+      addRow("Classifier", data.classifier_used + (data.fallback_used ? " (fallback)" : ""));
+      addRow("Rationale", data.rationale);
+      if (data.security.pii_types.length) addRow("Redacted PII", data.security.pii_types.join(", "));
+      if (data.security.injection_indicators.length) addRow("Injection indicators", data.security.injection_indicators.join(", "));
+    } catch (err) {
+      banner.className = "banner review";
+      banner.textContent = "Could not reach the server. Is it running?";
+      raw.textContent = String(err);
+    }
+  });
+</script>
+</body>
+</html>
