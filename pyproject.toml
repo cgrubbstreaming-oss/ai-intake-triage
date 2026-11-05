@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-intake-triage"
+version = "0.1.0"
+description = "AI-assisted intake and cybersecurity triage automation with a rule-based fallback, human-review triggers, and a tamper-evident audit log."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pydantic>=2.6",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# Only needed if you want the optional AI classifier. The project runs fully without these.
+llm = [
+    "anthropic>=1.0",
+    "openai>=1.40",
+]
+dev = [
+    "pytest>=8.0",
+    "httpx2>=2.16",  # test client for FastAPI/Starlette (replaces deprecated httpx use)
+]
+
+[project.scripts]
+triage = "triage.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
